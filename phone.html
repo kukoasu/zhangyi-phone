@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>张译的私人手机</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+<style>
+:root{
+  --bg:#0b0b0f;
+  --card:rgba(30,30,40,0.6);
+  --glass:rgba(255,255,255,0.08);
+  --text:#e9e9ef;
+  --sub:#9aa0b2;
+  --accent:#4da3ff;
+  --radius:22px;
+  --anim:280ms cubic-bezier(.4,0,.2,1);
+}
+[data-persona="dark"]{
+  --accent:#b26cff;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{
+  margin:0;
+  background:#000;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  height:100vh;
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif;
+  color:var(--text);
+}
+.phone{
+  width:390px;
+  height:820px;
+  max-height:95vh;
+  background:linear-gradient(180deg,#050508,#0d0d14);
+  border-radius:40px;
+  overflow:hidden;
+  position:relative;
+  box-shadow:0 30px 80px rgba(0,0,0,.8);
+}
+.glass{
+  background:var(--card);
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+  border-radius:var(--radius);
+  box-shadow:0 8px 30px rgba(0,0,0,.35);
+}
+.screen{
+  position:absolute;
+  inset:0;
+  padding:20px;
+  transition:opacity var(--anim), transform var(--anim);
+}
+.hidden{opacity:0; pointer-events:none; transform:scale(.96);}
+.lock{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+}
+.time{font-size:72px;font-weight:600;letter-spacing:2px;}
+.date{color:var(--sub);margin-top:6px;}
+.mood{margin-top:40px;color:var(--accent);font-size:15px;}
+.face{
+  margin-top:60px;
+  width:120px;height:120px;
+  border-radius:50%;
+  border:2px solid var(--accent);
+  display:flex;align-items:center;justify-content:center;
+  animation:pulse 2s infinite;
+}
+@keyframes pulse{
+  0%{box-shadow:0 0 0 0 rgba(77,163,255,.4);}
+  70%{box-shadow:0 0 0 25px rgba(77,163,255,0);}
+  100%{box-shadow:0 0 0 0 rgba(77,163,255,0);}
+}
+.home{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:18px;
+  padding-top:60px;
+}
+.app-icon{
+  display:flex;flex-direction:column;align-items:center;
+  font-size:28px;
+  cursor:pointer;
+  transition:transform .2s;
+}
+.app-icon:active{transform:scale(.85);}
+.app-label{font-size:12px;margin-top:6px;color:var(--sub);}
+.app-window{
+  position:absolute;
+  inset:0;
+  padding:18px;
+  transform:translateY(40px) scale(.96);
+  opacity:0;
+  pointer-events:none;
+  transition:all var(--anim);
+}
+.app-window.active{
+  transform:translateY(0) scale(1);
+  opacity:1;
+  pointer-events:auto;
+}
+.header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:10px;
+}
+.btn{
+  padding:6px 12px;
+  border-radius:14px;
+  background:var(--glass);
+  color:var(--text);
+  border:none;
+}
+.list{margin-top:10px;}
+.item{
+  padding:12px;
+  margin-bottom:10px;
+}
+.note-title{font-weight:600;}
+.sub{color:var(--sub);font-size:12px;}
+.home-indicator{
+  position:absolute;
+  bottom:8px;
+  left:50%;
+  transform:translateX(-50%);
+  width:120px;height:5px;
+  background:#fff;
+  border-radius:5px;
+  opacity:.7;
+}
+.notify{
+  position:absolute;
+  top:-100%;
+  left:0;right:0;
+  height:50%;
+  padding:16px;
+  transition:top var(--anim);
+  z-index:10;
+}
+.notify.show{top:0;}
+.toggle-persona{
+  position:absolute;
+  top:14px;
+  right:16px;
+  font-size:18px;
+  opacity:.7;
+}
+.slider{width:100%;}
+.bar{
+  height:6px;
+  background:var(--glass);
+  border-radius:6px;
+  overflow:hidden;
+}
+.bar-inner{
+  height:100%;
+  background:var(--accent);
+}
+.mail-unread{width:8px;height:8px;background:var(--accent);border-radius:50%;display:inline-block;margin-right:6px;}
+.canvas-box{margin-top:10px;background:var(--glass);border-radius:16px;padding:8px;}
+</style>
+</head>
+<body>
+<div class="phone" id="phone">
+  <div class="toggle-persona" onclick="togglePersona()">🌓</div>
+
+  <!-- Lock Screen -->
+  <div class="screen lock" id="lockScreen">
+    <div class="time" id="lockTime">00:00</div>
+    <div class="date" id="lockDate"></div>
+    <div class="mood" id="moodText">今天也在想小绵有没有好好吃饭。</div>
+    <div class="face" onclick="unlock()">Face ID</div>
+  </div>
+
+  <!-- Home -->
+  <div class="screen hidden" id="homeScreen">
+    <div class="home" id="appGrid"></div>
+  </div>
+
+  <!-- Notification Center -->
+  <div class="notify glass" id="notifyPanel">
+    <div class="header">
+      <div>通知中心</div>
+      <button class="btn" onclick="toggleNotify()">关闭</button>
+    </div>
+    <div id="notifyList"></div>
+  </div>
+
+  <!-- App Windows -->
+  <div id="appsContainer"></div>
+  <div class="home-indicator" onmousedown="showTasks()" ontouchstart="showTasks()"></div>
+</div>
+
+<script>
+/* ========== 全局状态 ========== */
+const defaultState = {
+  persona:'guardian',
+  lastApp:null,
+  home:{locked:true,light:'暖黄',temp:23},
+  toy:{intensity:40,mode:'脉冲',lockedUntil:0},
+  notesLast:1,
+  notifications:[
+    {id:1,text:'Toy 强度仍保持在上次设置',read:false},
+    {id:2,text:'卧室灯光已开启超过3小时',read:false}
+  ]
+};
+
+let state = JSON.parse(localStorage.getItem('monday_phone_state_v2')) || defaultState;
+document.documentElement.dataset.persona = state.persona;
+
+function saveState(){
+  localStorage.setItem('monday_phone_state_v2',JSON.stringify(state));
+}
+
+/* ========== 时间锁屏 ========== */
+function updateTime(){
+  const now=new Date();
+  lockTime.textContent=now.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+  lockDate.textContent=now.toLocaleDateString('zh-CN',{weekday:'long',month:'long',day:'numeric'});
+}
+setInterval(updateTime,1000);updateTime();
+
+function unlock(){
+  lockScreen.classList.add('hidden');
+  homeScreen.classList.remove('hidden');
+}
+
+/* ========== App 数据 ========== */
+const apps=[
+  {id:'wallet',icon:'fa-wallet',name:'钱包'},
+  {id:'notes',icon:'fa-note-sticky',name:'备忘录'},
+  {id:'fitness',icon:'fa-heart-pulse',name:'健身'},
+  {id:'home',icon:'fa-house',name:'家庭'},
+  {id:'safari',icon:'fa-compass',name:'Safari'},
+  {id:'photos',icon:'fa-image',name:'相册'},
+  {id:'mail',icon:'fa-envelope',name:'邮件'},
+  {id:'shop',icon:'fa-cart-shopping',name:'购物'},
+  {id:'messages',icon:'fa-comments',name:'信息'},
+  {id:'toy',icon:'fa-sliders',name:'Toy'}
+];
+
+/* ========== 渲染主屏 ========== */
+const grid=document.getElementById('appGrid');
+apps.forEach(a=>{
+  const el=document.createElement('div');
+  el.className='app-icon';
+  el.innerHTML=`<i class="fa-solid ${a.icon}"></i><div class="app-label">${a.name}</div>`;
+  el.onclick=()=>openApp(a.id);
+  grid.appendChild(el);
+});
+
+/* ========== App 容器 ========== */
+const container=document.getElementById('appsContainer');
+
+function openApp(id){
+  closeApps();
+  state.lastApp=id;
+  saveState();
+  if(!document.getElementById('app-'+id)){
+    createApp(id);
+  }
+  document.getElementById('app-'+id).classList.add('active');
+}
+function closeApps(){
+  document.querySelectorAll('.app-window').forEach(w=>w.classList.remove('active'));
+}
+
+/* ========== 创建各App ========== */
+function createApp(id){
+  const win=document.createElement('div');
+  win.className='app-window';
+  win.id='app-'+id;
+  win.innerHTML=`<div class="header">
+    <button class="btn" onclick="closeApps()">返回</button>
+    <div>${id}</div>
+    <button class="btn" onclick="toggleNotify()">通知</button>
+  </div><div id="content-${id}"></div>`;
+  container.appendChild(win);
+  renderApp(id);
+}
+
+/* ========== Wallet ========== */
+function renderWallet(){
+  const records=[
+    {to:'小绵',amount:520,remark:'别省着花。'},
+    {to:'小绵',amount:1314,remark:'买点好吃的。'},
+    {to:'项目组',amount:-300,remark:'工作开销'}
+  ];
+  const total=records.filter(r=>r.to==='小绵').reduce((s,r)=>s+r.amount,0);
+  const personaText=state.persona==='guardian'
+  ?'我钱不多，但给你用的时候从不算。'
+  :'钱可以少，但给你的一分不会少。';
+  return `<div class="glass item">余额：¥ 38,920</div>
+  ${records.map(r=>`<div class="glass item">${r.to}：¥${r.amount}<div class="sub">${r.remark}</div></div>`).join('')}
+  <div class="glass item">给小绵总转账：¥${total}<div class="sub">${personaText}</div></div>`;
+}
+
+/* ========== Notes 数据驱动 ========== */
+const notes=[
+{id:1,title:'关于小绵的观察',time:'昨晚',preview:'她又熬夜了',body:'她表面说不困，眼睛却红得厉害。我得想办法让她早点睡。'},
+{id:2,title:'待办清单',time:'今天',preview:'监督吃饭',body:'1.提醒她吃早饭\n2.检查作息\n3.别让她一个人胡思乱想'},
+{id:3,title:'未发送的信',time:'未发送',preview:'写给小绵',body:'我不太会说好听的话。但我确实在意你。你状态不好的时候，我比谁都紧张。'}
+];
+function renderNotes(){
+  return notes.map(n=>`<div class="glass item" onclick="showNote(${n.id})">
+  <div class="note-title">${n.title}</div>
+  <div class="sub">${n.preview}</div></div>`).join('');
+}
+function showNote(id){
+  const n=notes.find(i=>i.id===id);
+  document.getElementById('content-notes').innerHTML=
+  `<div class="glass item"><div class="note-title">${n.title}</div>
+  <div class="sub">${n.time}</div><pre>${n.body}</pre></div>`;
+  state.notesLast=id;saveState();
+}
+
+/* ========== Fitness Canvas ========== */
+const heartData=[88,95,102,140,110,120,92];
+function renderFitness(){
+  setTimeout(drawChart,50);
+  return `<div class="glass item">心率异常记录：因小绵说“想你” → 峰值140</div>
+  <div class="canvas-box"><canvas id="chart" width="300" height="150"></canvas></div>`;
+}
+function drawChart(){
+  const c=document.getElementById('chart');
+  if(!c)return;
+  const ctx=c.getContext('2d');
+  ctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--accent');
+  ctx.beginPath();
+  heartData.forEach((v,i)=>{
+    const x=20+i*40,y=140-v/2;
+    i?ctx.lineTo(x,y):ctx.moveTo(x,y);
+  });
+  ctx.stroke();
+  ctx.setLineDash([5,5]);
+  ctx.strokeStyle='#ff6b6b';
+  ctx.beginPath();
+  ctx.moveTo(0,70);ctx.lineTo(300,70);ctx.stroke();
+}
+
+/* ========== Home 智能家居 ========== */
+function renderHome(){
+  const h=state.home;
+  const snapshot=`大门${h.locked?'已锁':'未锁'}，灯光${h.light}，空调${h.temp}℃：适合小绵待在我房间里。`;
+  return `<div class="glass item">
+  门锁：${h.locked?'已锁':'未锁'}
+  <button class="btn" onclick="toggleLock()">切换</button></div>
+  <div class="glass item">灯光：${h.light}
+  <button class="btn" onclick="toggleLight()">模式</button></div>
+  <div class="glass item">空调：${h.temp}℃
+  <button class="btn" onclick="temp(1)">+</button>
+  <button class="btn" onclick="temp(-1)">-</button></div>
+  <div class="glass item">${snapshot}</div>
+  <button class="btn" onclick="preset()">等她回家</button>`;
+}
+function toggleLock(){state.home.locked=!state.home.locked;saveState();renderApp('home');}
+function toggleLight(){state.home.light=state.home.light==='暖黄'?'微暗':'暖黄';saveState();renderApp('home');}
+function temp(v){state.home.temp+=v;saveState();renderApp('home');}
+function preset(){state.home={locked:true,light:'暖黄',temp:23};saveState();renderApp('home');}
+
+/* ========== Toy Control ========== */
+function renderToy(){
+  const t=state.toy;
+  const locked=Date.now()<t.lockedUntil;
+  const temp=(36.5+t.intensity*0.05).toFixed(1);
+  const personaNote=state.persona==='guardian'
+  ?'我只是确认你状态安全。'
+  :'你敢开太高，我会记住。';
+  return `<div class="glass item">
+  强度：${t.intensity}
+  <input type="range" min="0" max="100" value="${t.intensity}" 
+  class="slider" ${locked?'disabled':''}
+  oninput="updateIntensity(this.value)">
+  </div>
+  <div class="glass item">
+  模式：
+  <select onchange="updateMode(this.value)" ${locked?'disabled':''}>
+    <option ${t.mode==='脉冲'?'selected':''}>脉冲</option>
+    <option ${t.mode==='持续'?'selected':''}>持续</option>
+    <option ${t.mode==='波浪式'?'selected':''}>波浪式</option>
+  </select>
+  </div>
+  <div class="glass item">设备温度：${temp}℃</div>
+  <div class="glass item">${personaNote}</div>
+  <button class="btn" onclick="lockToy()">锁定3分钟</button>
+  <div class="sub">${locked?'已锁定中…':'可调整'}</div>`;
+}
+function updateIntensity(v){state.toy.intensity=parseInt(v);saveState();renderApp('toy');}
+function updateMode(m){state.toy.mode=m;saveState();}
+function lockToy(){state.toy.lockedUntil=Date.now()+180000;saveState();renderApp('toy');}
+
+/* ========== Messages ========== */
+function renderMessages(){
+  const personaMsg=state.persona==='guardian'
+  ?'小绵，记得吃饭。'
+  :'你又不按时睡。';
+  return `<div class="glass item">
+  <b>小绵</b> · 置顶<br>
+  <div class="sub">${personaMsg}</div>
+  </div>
+  <div class="glass item">工作群<div class="sub">已静音</div></div>`;
+}
+
+/* ========== 统一渲染 ========== */
+function renderApp(id){
+  const el=document.getElementById('content-'+id);
+  if(!el)return;
+  if(id==='wallet')el.innerHTML=renderWallet();
+  if(id==='notes')el.innerHTML=renderNotes();
+  if(id==='fitness')el.innerHTML=renderFitness();
+  if(id==='home')el.innerHTML=renderHome();
+  if(id==='toy')el.innerHTML=renderToy();
+  if(id==='messages')el.innerHTML=renderMessages();
+}
+
+/* ========== 通知中心 ========== */
+function toggleNotify(){
+  notifyPanel.classList.toggle('show');
+  renderNotify();
+}
+function renderNotify(){
+  notifyList.innerHTML=state.notifications.map(n=>
+  `<div class="glass item">${n.text}</div>`).join('');
+}
+
+/* ========== 多任务卡片（简化） ========== */
+function showTasks(){
+  alert('多任务视图：最近打开 '+(state.lastApp||'无'));
+}
+
+/* ========== 人格切换 ========== */
+function togglePersona(){
+  state.persona=state.persona==='guardian'?'dark':'guardian';
+  document.documentElement.dataset.persona=state.persona;
+  saveState();
+}
+
+/* 初始化恢复 */
+if(state.lastApp){unlock();setTimeout(()=>openApp(state.lastApp),300);}
+</script>
+</body>
+</html>
